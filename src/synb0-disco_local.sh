@@ -25,7 +25,7 @@ export Synb0_ATLAS=${Synb0_path}/atlases
 export PATH=$PATH:$Synb0_SRC:$Synb0_PROC:$Synb0_ATLAS
 
 # can be moved inline
-MNI_T1_1_MM_FILE=$Synb0_path/atlases/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
+#MNI_T1_1_MM_FILE=$Synb0_path/atlases/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
 
 for arg in "$@"
 do
@@ -53,7 +53,7 @@ check_nii_dims.sh $b0 $b0
 
 # Prepare input
 #data_processing/prepare_input.sh INPUTS/b0.nii.gz INPUTS/T1.nii.gz $MNI_T1_1_MM_FILE atlases/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz OUTPUTS
-prepare_input.sh $b0 $T1 $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
+prepare_input_local.sh $b0 $T1 $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
 
 # Run inference
 NUM_FOLDS=5
