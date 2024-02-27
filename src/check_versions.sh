@@ -3,15 +3,20 @@
 
 DATE=$(date +%Y-%m-%d)
 
+# get location of this script
+DIR=$(dirname "$0")
+echo $DIR
+
 #if src/package_versions.txt exists, rename it to pre{date}_package_versions.txt
-if [ -f src/package_versions.txt ]; then
-    mv src/package_versions.txt src/pre${DATE}_package_versions.txt.txt
+if [ -f package_versions.txt ]; then
+    # get first line from package_versions.txt
+    OLD_DATE=$(head -n 1 package_versions.txt)
+    mv package_versions.txt ${OLD_DATE}_package_versions.txt
 fi
 
 # start file
-touch src/package_versions.txt
-echo $DATE > package_versions.txt.txt
-echo "------" >> package_versions.txt.txt
+echo $DATE > package_versions.txt
+echo "------" >> package_versions.txt
 
 # python, pytorch and nibabel
 python --version >> package_versions.txt
@@ -27,15 +32,19 @@ mri_convert --version >> package_versions.txt
 echo "" >> package_versions.txt
 
 # FSL
-echo FSL
-flirt -version >> package_versions.txt
+echo FSL version>> package_versions.txt
+#flirt -version >> package_versions.txt
+cat $FSLDIR/etc/fslversion >> package_versions.txt
+echo "" >> package_versions.txt
 echo "" >> package_versions.txt
 
 # ANTS
 antsRegistration --version >> package_versions.txt
-echo "" >> package_versions.txt
+#echo "" >> package_versions.txt
 
-# C3D (not working)
-c3d --version >> package_versions.txt
+# Get C3D version from Info.plis
+echo C3D version >> package_versions.txt
+/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" /Applications/Convert3DGUI.app/Contents/Info.plist >> package_versions.txt
+
 
 

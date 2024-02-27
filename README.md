@@ -69,8 +69,7 @@ singularity run -e \
 
 ## Non-containerized Instructions
 
-If you choose to run this in bash, the primary script is located in src/pipeline.sh. The paths in pipeline.sh are specific to the docker/singularity file
-systems, but the processing can be replicated using the scripts in src. These utilize freesurfer, FSL, ANTS, and a python environment with pytorch.
+The src/synb0-disco_local.sh script is an adjusted copy of the original pipeline.sh. ###edit###
 
 ## Flags:
 
@@ -98,7 +97,7 @@ displayed below, in which distortion is in the second dimension, note that the s
 
 ## Outputs
 
-After running, the OUTPUTS directory contains the following preprocessing files:
+After running, the specified output directory contains the following preprocessing files:
 
 * T1_mask.nii.gz: brain extracted (skull-stripped) T1 (a copy of the input if T1.nii.gz is already skull-stripped)
 * T1_norm.nii.gz: normalized T1
@@ -112,7 +111,7 @@ After running, the OUTPUTS directory contains the following preprocessing files:
 * T1_norm_nonlin_atlas_2_5.nii.gz: nonlinear transform T1 to MNI   
 * b0_d_nonlin_atlas_2_5.nii.gz: nonlinear transform distorted b0 in MNI space  
 
-The OUTPUTS directory also contains inferences (predictions) for each of five folds utilizing T1_norm_lin_atlas_2_5.nii.gz and b0_d_lin_atlas_2_5.nii.gz as inputs:
+The specified output directory also contains inferences (predictions) for each of five folds utilizing T1_norm_lin_atlas_2_5.nii.gz and b0_d_lin_atlas_2_5.nii.gz as inputs:
 
 * b0_u_lin_atlas_2_5_FOLD_1.nii.gz  
 * b0_u_lin_atlas_2_5_FOLD_2.nii.gz  
