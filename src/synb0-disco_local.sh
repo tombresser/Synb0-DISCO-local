@@ -46,7 +46,7 @@ export PATH=$PATH:$Synb0_SRC:$Synb0_PROC:$Synb0_ATLAS
 if [ -f $Synb0_SRC/local_paths.sh ]; then
     source $Synb0_SRC/local_paths.sh
 else
-    echo "local_paths.sh not found. Please create it and set the paths to the tools."
+    echo "local_paths.sh not found. Please check local_paths_example.sh."
     exit 1
 fi
 
