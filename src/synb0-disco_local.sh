@@ -1,11 +1,15 @@
 #!/bin/bash
-# This is a wrapper to run Synb0-DISCO locally and is based on pipeline.sh.
-# The function is called as follows:
-# Synb0-DISCO/src/synb0-disco_local.sh sub-99_T1w.nii.gz sub-99_b0.nii.gz path/to/outdir -i -s
+# This is a wrapper to run Synb0-DISCO locally and is based on pipeline.sh
+# It expects a local_paths.sh file to be present in the same directory containing 
+# the paths to the tools (Freesurfer, FSL, ANTS, C3D). See example_local_paths.sh for an example.
+#
+# Usage: synb0-disco_local.sh sub-99_T1w.nii.gz sub-99_b0.nii.gz path/to/outdir -i -s
+#
 # It takes the following arguments:
 # -i|--notopup: if set, topup is not run
 # -s|--stripped: if set, the 1mm T1 atlas is stripped
 
+# Set input arguments
 T1=$1
 b0=$2
 OUTPUTDIR=$3
@@ -16,10 +20,12 @@ MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
 # exit if input files do not exist
 if [ ! -f $T1 ]; then
     echo "T1 file does not exist"
+    echo "Usage: synb0-disco_local.sh <T1> <b0> <outputdir> -i -s"
     exit 1
 fi
 if [ ! -f $b0 ]; then
     echo "b0 file does not exist"
+    echo "Usage: synb0-disco_local.sh <T1> <b0> <outputdir> -i -s"
     exit 1
 fi
 
@@ -36,9 +42,13 @@ export Synb0_PROC=${Synb0_path}/data_processing
 export Synb0_ATLAS=${Synb0_path}/atlases
 export PATH=$PATH:$Synb0_SRC:$Synb0_PROC:$Synb0_ATLAS
 
-# Set paths for the following tools;
-# FreeSurfer, FSL, ANTs, c3d, PyTorch, nibabel
-source my_paths.sh
+# Set paths for local tools (FreeSurfer, FSL, ANTs, c3d, PyTorch, NumPy, SciPy, and NiBabel)
+if [ -f $Synb0_SRC/local_paths.sh ]; then
+    source $Synb0_SRC/local_paths.sh
+else
+    echo "local_paths.sh not found. Please create it and set the paths to the tools."
+    exit 1
+fi
 
 # Parse arguments -i -s
 for arg in "$@"
@@ -53,19 +63,13 @@ do
     esac
 done
 
-
-# check and correct dimensions of input
-check_nii_dims.sh $b0 $b0
-
 # Prepare input data
-prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE \
-                       $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
+prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
 
 # Run inference
 NUM_FOLDS=5
-for i in $(seq 1 $NUM_FOLDS);
-  do echo -- Performing inference on FOLD: "$i" --
-  #python3.6 /extra/inference.py /OUTPUTS/T1_norm_lin_atlas_2_5.nii.gz /OUTPUTS/b0_d_lin_atlas_2_5.nii.gz /OUTPUTS/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz /extra/dual_channel_unet/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth
+for i in $(seq 1 $NUM_FOLDS); do 
+  echo -- Performing inference on FOLD: "$i" --
   python3 $Synb0_SRC/inference_local.py $OUTPUTDIR/T1_norm_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_d_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz $Synb0_SRC/train_lin/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth
 done
 
@@ -84,10 +88,15 @@ antsApplyTransforms -d 3 -i $OUTPUTDIR/b0_u_lin_atlas_2_5.nii.gz -r $b0 -n BSpli
 echo Applying slight smoothing to distorted b0
 fslmaths $b0 -s 1.15 $OUTPUTDIR/b0_d_smooth.nii.gz
 
+# Merge distorted and undistorted b0
+fslmerge -t $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_d_smooth.nii.gz $OUTPUTDIR/b0_u.nii.gz
+
+# Merge results and run through topup
 if [[ $TOPUP -eq 1 ]]; then
-    # Merge results and run through topup
+    # check dimensions of b0_all.nii.gz (topup requires even dimensions)
+    $Synb0_SRC/check_nii_dims.sh $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_all.nii.gz
+
     echo Running topup
-    fslmerge -t $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_d_smooth.nii.gz $OUTPUTDIR/b0_u.nii.gz
     topup -v --imain=$OUTPUTDIR/b0_all.nii.gz --datain=acqparams.txt --config=$Synb0_SRC/synb0.cnf --iout=$OUTPUTDIR/b0_all_topup.nii.gz --out=$OUTPUTDIR/topup
 fi
 
