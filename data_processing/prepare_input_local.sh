@@ -23,14 +23,14 @@ echo Job directory path: $JOB_PATH
 # Make results directory
 echo -------
 echo Making results directory...
-mkdir -p $RESULTS_PATH
+mkdir -p $RESULTS_PATH 
 
 # Normalize T1
 echo -------
 echo Normalizing T1
 T1_N3_PATH=$JOB_PATH/T1_N3.nii.gz
 T1_NORM_PATH=$JOB_PATH/T1_norm.nii.gz
-#NORMALIZE_CMD="Synb0-DISCO/data_processing/normalize_T1.sh $T1_PATH $T1_N3_PATH $T1_NORM_PATH"
+
 NORMALIZE_CMD="$Synb0_PROC/normalize_T1.sh $T1_PATH $T1_N3_PATH $T1_NORM_PATH"
 echo $NORMALIZE_CMD
 eval $NORMALIZE_CMD
@@ -97,7 +97,6 @@ eval $APPLYTRANSFORM_CMD
 echo -------
 echo Apply nonlinear transform to T1
 T1_NORM_NONLIN_ATLAS_2_5_PATH=$JOB_PATH/T1_norm_nonlin_atlas_2_5.nii.gz
-#APPLYTRANSFORM_CMD="antsApplyTransforms -d 3 -i $T1_NORM_PATH -r $T1_ATLAS_2_5_PATH -n BSpline -t "$ANTS_OUT"1Warp.nii.gz -t "$ANTS_OUT"0GenericAffine.mat -o $T1_NORM_NONLIN_ATLAS_2_5_PATH"
 APPLYTRANSFORM_CMD="antsApplyTransforms -d 3 -i $T1_NORM_PATH -r $T1_ATLAS_2_5_PATH -n BSpline -t "$ANTS_OUT"Warped.nii.gz -t "$ANTS_OUT"0GenericAffine.mat -o $T1_NORM_NONLIN_ATLAS_2_5_PATH"
 echo $APPLYTRANSFORM_CMD
 eval $APPLYTRANSFORM_CMD
@@ -106,8 +105,8 @@ eval $APPLYTRANSFORM_CMD
 echo -------
 echo Apply nonlinear transform to distorted b0
 B0_D_NONLIN_ATLAS_2_5_PATH=$JOB_PATH/b0_d_nonlin_atlas_2_5.nii.gz
-#APPLYTRANSFORM_CMD="antsApplyTransforms -d 3 -i $B0_D_PATH -r $T1_ATLAS_2_5_PATH -n BSpline -t "$ANTS_OUT"1Warp.nii.gz -t "$ANTS_OUT"0GenericAffine.mat -t $EPI_REG_D_ANTS_PATH -o $B0_D_NONLIN_ATLAS_2_5_PATH"
 APPLYTRANSFORM_CMD="antsApplyTransforms -d 3 -i $B0_D_PATH -r $T1_ATLAS_2_5_PATH -n BSpline -t "$ANTS_OUT"Warped.nii.gz -t "$ANTS_OUT"0GenericAffine.mat -t $EPI_REG_D_ANTS_PATH -o $B0_D_NONLIN_ATLAS_2_5_PATH"
+
 echo $APPLYTRANSFORM_CMD
 eval $APPLYTRANSFORM_CMD
 
@@ -118,15 +117,26 @@ cp $T1_NORM_PATH $RESULTS_PATH
 cp $T1_MASK_PATH $RESULTS_PATH
 cp $EPI_REG_D_MAT_PATH $RESULTS_PATH
 cp $EPI_REG_D_ANTS_PATH $RESULTS_PATH
-cp "$ANTS_OUT"0GenericAffine.mat $RESULTS_PATH
-#cp "$ANTS_OUT"1Warp.nii.gz $RESULTS_PATH
-cp "$ANTS_OUT"Warped.nii.gz $RESULTS_PATH
-#cp "$ANTS_OUT"1InverseWarp.nii.gz $RESULTS_PATH
-cp "$ANTS_OUT"InverseWarped.nii.gz $RESULTS_PATH
 cp $T1_NORM_LIN_ATLAS_2_5_PATH $RESULTS_PATH
 cp $T1_NORM_NONLIN_ATLAS_2_5_PATH $RESULTS_PATH
 cp $B0_D_LIN_ATLAS_2_5_PATH $RESULTS_PATH
 cp $B0_D_NONLIN_ATLAS_2_5_PATH $RESULTS_PATH
+
+# Output naming can differ (likely due to version differnece)
+# check which one exists and copy that one
+if [ -f "$ANTS_OUT"1Warp.nii.gz ]; then
+  cp "$ANTS_OUT"0GenericAffine.mat $RESULTS_PATH
+  cp "$ANTS_OUT"1Warp.nii.gz $RESULTS_PATH
+  cp "$ANTS_OUT"1InverseWarp.nii.gz $RESULTS_PATH
+elif [ -f "$ANTS_OUT"Warp.nii.gz ]; then
+  cp "$ANTS_OUT"0GenericAffine.mat $RESULTS_PATH
+  cp "$ANTS_OUT"Warp.nii.gz $RESULTS_PATH
+  cp "$ANTS_OUT"InverseWarp.nii.gz $RESULTS_PATH
+else
+  echo "No warp files found, check naming: "
+  ls $ANTS_OUT
+  exit 1
+fi
 
 # Delete job directory
 echo -------
