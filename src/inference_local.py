@@ -18,25 +18,25 @@ import nibabel as nib
 import torch
 import torch.nn as nn
 
-
-# search function to find specific directory
-def find_directory(name):
-    current_dir = os.getcwd()
-    for root, dirs, files in os.walk(current_dir):
-        if name in dirs:
-            return os.path.join(root, name)
-
-# check if util and model are in current directory
-if not os.path.exists('util.py') or not os.path.exists('model.py'):
-    sys.path.append(find_directory('Synb0-DISCO'))
-    import src.util as util
-    from src.model import UNet3D
-else:
+# import SynB0-DISCO util and model        
+try:
     import util
     from model import UNet3D
+except ImportError:
+    # search function to find specific directory
+    def find_directory(name):
+        current_dir = os.getcwd()
+        for root, dirs, files in os.walk(current_dir):
+            if name in dirs:
+                return os.path.join(root, name)
+            
+    # add SynB0-DISCO to path        
+    sys.path.append(find_directory('SynB0-DISCO'))
+    import src.util as util
+    from src.model import UNet3D
 
 
-
+# Inference function
 def inference(T1_path, b0_d_path, model, device):
     # Eval mode
     model.eval()
