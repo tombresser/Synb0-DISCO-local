@@ -1,4 +1,4 @@
 src/__pycache__
 src/installANTs.sh
 local/local_paths.sh
-local/package_versions.txt
+*package_versions.txt
