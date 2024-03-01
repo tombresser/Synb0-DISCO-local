@@ -3,36 +3,22 @@
 # It expects a local_paths.sh file to be present in the same directory containing 
 # the paths to the tools (Freesurfer, FSL, ANTS, C3D). See example_local_paths.sh for an example.
 #
-# Usage: synb0-disco_local.sh sub-99_T1w.nii.gz sub-99_b0.nii.gz path/to/outdir -i -s
+# Usage: synb0-disco_local.sh -t T1.nii.gz -b b0.nii.gz -a acqparams.txt -o outdir -i -s
 #
-# It takes the following arguments:
-# -i|--notopup: if set, topup is not run
-# -s|--stripped: if set, the 1mm T1 atlas is stripped
+# -t T1.nii.gz: path to the T1-weighted image (either raw or skull-stripped, see [Flags](#flags))
+# -b b0.nii.gz: path to the the non-diffusion weighted image(s)
+# -a acqparams.txt: path to the acqusition parameters (see [Inputs](#Inputs), not required if -s is used)
+# -o outdir: path to specified output directory
+# 
+# Flags:
+# -i : if set, topup is not run
+# -s : if set, the 1mm T1 atlas is stripped
 
 # Set input arguments
-T1=$1
-b0=$2
-OUTPUTDIR=$3
-TOPUP=1
-MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
-
-## Checks
-# exit if input files do not exist
-if [ ! -f $T1 ]; then
-    echo "T1 file does not exist"
-    echo "Usage: synb0-disco_local.sh <T1> <b0> <outputdir> -i -s"
-    exit 1
-fi
-if [ ! -f $b0 ]; then
-    echo "b0 file does not exist"
-    echo "Usage: synb0-disco_local.sh <T1> <b0> <outputdir> -i -s"
-    exit 1
-fi
-
-# check if output directory has trailing slash
-if [[ $OUTPUTDIR == */ ]]; then
-    OUTPUTDIR=${OUTPUTDIR%/}
-fi
+# T1=$1
+# b0=$2
+# ACQP=$3
+# OUTPUTDIR=$4
 
 ## Set path for executable
 Synb0_path=$(dirname "$0")
@@ -50,19 +36,90 @@ else
     exit 1
 fi
 
-# Parse arguments -i -s
-for arg in "$@"
-do
-    case $arg in
-        -i|--notopup)
-            TOPUP=0
-	        ;;
-    	-s|--stripped)
-	        MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_mask.nii.gz
-            ;;
-    esac
+## Arguments
+# Set default values
+TOPUP=1
+MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
+
+# Check if no arguments were provided
+if [ $# -eq 0 ]; then
+  echo "No arguments provided"
+  echo "Usage: synb0-disco_local.sh -t T1.nii.gz -b b0.nii.gz -a acqparams.txt -o outdir -i -s"
+  exit 1
+fi
+
+# Parse arguments
+while getopts ":t:b:a:o:is" opt; do
+  case $opt in
+    t) T1="$OPTARG"
+    ;;
+    b) b0="$OPTARG"
+    ;;
+    a) ACQP="$OPTARG"
+    ;;
+    o) OUTPUTDIR="$OPTARG"
+    ;;
+    i) 
+        iFlag=true
+        TOPUP=0
+    ;;
+    s) 
+        sFlag=true
+        MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_mask.nii.gz
+    ;;
+    \?) echo "Invalid option -$OPTARG" >&2
+    ;;
+  esac
 done
 
+## Parse arguments -i -s
+# for arg in "$@"
+# do
+#     case $arg in
+#         -i|--notopup)
+#             TOPUP=0
+# 	        ;;
+#     	-s|--stripped)
+# 	        MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_mask.nii.gz
+#             ;;
+#     esac
+# done
+
+## Checks
+# exit if variable is empty or files does not exist
+errorMsg=""
+
+if [ -z "$T1" ] || [ ! -f "$T1" ]; then
+    errorMsg+="T1 not provided or file does not exist\n"
+fi
+
+if [ -z "$b0" ] || [ ! -f "$b0" ]; then
+    errorMsg+="b0 not provided or file does not exist\n"
+fi
+
+if [ -z "$OUTPUTDIR" ]; then
+    errorMsg+="Output directory not provided\n"
+fi
+
+# if TOPUP is set, check if acqparams exists
+if [[ $TOPUP -eq 1 ]]; then
+    if [ -z "$ACQP" ] || [ ! -f "$ACQP" ]; then
+        errorMsg+="acqparams file not found\n"
+    fi
+fi
+
+# If errorMsg is not empty, print it and exit
+if [ ! -z "$errorMsg" ]; then
+  echo -e $errorMsg
+  exit 1
+fi
+
+# check if output directory has trailing slash
+if [[ $OUTPUTDIR == */ ]]; then
+    OUTPUTDIR=${OUTPUTDIR%/}
+fi
+
+#-------------------------------------------------#
 # Prepare input data
 prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
 
@@ -70,7 +127,7 @@ prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE $Synb0_ATLAS/mni_icbm152_t1_tal
 NUM_FOLDS=5
 for i in $(seq 1 $NUM_FOLDS); do 
   echo -- Performing inference on FOLD: "$i" --
-  python3 $Synb0_SRC/inference_local.py $OUTPUTDIR/T1_norm_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_d_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz $Synb0_SRC/train_lin/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth
+  python3 $Synb0_SRC/inference_local.py $OUTPUTDIR/T1_norm_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_d_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz $Synb0_SRC/train_lin/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth 
 done
 
 # Take mean
