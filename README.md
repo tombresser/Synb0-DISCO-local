@@ -20,9 +20,9 @@ This tool aims to enable susceptibility distortion correction with historical an
 
 Please use the following citations to refer to this work:
 
-Schilling KG, Blaber J, Hansen C, Cai L, Rogers B, Anderson AW, Smith S, Kanakaraj P, Rex T, Resnick SM, Shafer AT, Cutting LE, Woodward N, Zald D, Landman BA. Distortion correction of diffusion weighted MRI without reverse phase-encoding scans or field-maps. PLoS One. 2020 Jul 31;15(7):e0236418. doi: 10.1371/journal.pone.0236418. PMID: 32735601; PMCID: PMC7394453.
+Schilling KG, Blaber J, Hansen C, Cai L, Rogers B, Anderson AW, Smith S, Kanakaraj P, Rex T, Resnick SM, Shafer AT, Cutting LE, Woodward N, Zald D, Landman BA. Distortion correction of diffusion weighted MRI without reverse phase-encoding scans or field-maps. PLoS One. 2020 Jul 31;15(7):e0236418. doi: [10.1371/journal.pone.0236418](https://doi.org/10.1371/journal.pone.0236418). PMID: 32735601; PMCID: PMC7394453.
 
-Schilling KG, Blaber J, Huo Y, Newton A, Hansen C, Nath V, Shafer AT, Williams O, Resnick SM, Rogers B, Anderson AW, Landman BA. Synthesized b0 for diffusion distortion correction (Synb0-DisCo). Magn Reson Imaging. 2019 Dec;64:62-70. doi: 10.1016/j.mri.2019.05.008. Epub 2019 May 7. PMID: 31075422; PMCID: PMC6834894.
+Schilling KG, Blaber J, Huo Y, Newton A, Hansen C, Nath V, Shafer AT, Williams O, Resnick SM, Rogers B, Anderson AW, Landman BA. Synthesized b0 for diffusion distortion correction (Synb0-DisCo). Magn Reson Imaging. 2019 Dec;64:62-70. doi: [10.1016/j.mri.2019.05.008](https://doi.org/10.1016/j.mri.2019.05.008). Epub 2019 May 7. PMID: 31075422; PMCID: PMC6834894.
 
 ## Dockerized Application
 
@@ -69,8 +69,27 @@ singularity run -e \
 
 ## Non-containerized Instructions
 
-The src/synb0-disco_local.sh script is an adjusted copy of the original pipeline.sh. ###edit###
+Running synb0-disco locally without Docker/Singularity is possible by using local/synb0-disco_local.sh as function (see usage below). Before running synb0-disco_local, make sure that all required toolboxes (Freesurfer, FSL, ANTS, C3D, and a python environment with pytorch) are installed. Check out `local/local_paths_example.sh` for installation guide URLs and as an example to setup paths in `local/local_paths.sh`. 
 
+When the required toolboxes are installed and their paths added, you can either add `/localpath/SYNB)-DISCO/local` to your $PATH and run synb0-disco_local.sh or directly execute `/localpath/SYNB)-DISCO/local/synb0-disco_local.sh`. The inputs arguments are similair to the containerized version, but have the flexibility of accepting paths towards the different inputs. The output directory can be specified.
+  
+
+```
+Usage: synb0-disco_local.sh -t T1.nii.gz -b b0.nii.gz -a acqparams.txt -o outdir -i -s
+
+ -t T1.nii.gz: path to the T1-weighted image (either raw or skull-stripped, see [Flags](#flags))
+ -b b0.nii.gz: path to the the non-diffusion weighted image(s)
+ -a acqparams.txt: path to the acqusition parameters (not required if -s is used)
+ -o outdir: path to specified output directory
+ -i : if set, topup is not run
+ -s : if set, the 1mm T1 atlas is stripped
+
+```
+  
+*Disclaimer: This non-containerized version of synb0-disco was developed and tested on macOS Big Sur with Python 3.7.6, PyTorch 1.13.1, nibabel 4.0.2, freesurfer 7.1.1, FSL 6.0.4, ANTs 2.5.1 and C3D 1.0.0*
+    
+     
+     
 ## Flags:
 
 **--notopup**
