@@ -18,22 +18,20 @@ import nibabel as nib
 import torch
 import torch.nn as nn
 
+# make sure Synb0-DISCO/src is within sys.path
+for path in sys.path:
+    if 'Synb0-DISCO' in path:
+        # truncate path to end with Synb0-DISCO
+        path = path[:path.find('Synb0-DISCO') + len('Synb0-DISCO')]
+        # append local to Synbo-DISCO
+        path = os.path.join(path, 'src')
+        sys.path.append(path)
+        break
+
+
 # import SynB0-DISCO util and model        
-try:
-    import util
-    from model import UNet3D
-except ImportError:
-    # search function to find specific directory
-    def find_directory(name):
-        current_dir = os.getcwd()
-        for root, dirs, files in os.walk(current_dir):
-            if name in dirs:
-                return os.path.join(root, name)
-            
-    # add SynB0-DISCO to path        
-    sys.path.append(find_directory('SynB0-DISCO'))
-    import src.util as util
-    from src.model import UNet3D
+import util
+from model import UNet3D
 
 
 # Inference function

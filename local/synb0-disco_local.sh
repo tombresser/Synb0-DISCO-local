@@ -14,28 +14,26 @@
 # -i : if set, topup is not run
 # -s : if set, the 1mm T1 atlas is stripped
 
-# Set input arguments
-# T1=$1
-# b0=$2
-# ACQP=$3
-# OUTPUTDIR=$4
 
+#-------------------------------------------------#
 ## Set path for executable
 Synb0_path=$(dirname "$0")
-Synb0_path=${Synb0_path%/src}
+Synb0_path=${Synb0_path%/local}
 export Synb0_SRC=${Synb0_path}/src
 export Synb0_PROC=${Synb0_path}/data_processing
 export Synb0_ATLAS=${Synb0_path}/atlases
-export PATH=$PATH:$Synb0_SRC:$Synb0_PROC:$Synb0_ATLAS
+export Synb0_LOCAL=${Synb0_path}/local
+export PATH=$PATH:$Synb0_SRC:$Synb0_PROC:$Synb0_ATLAS:$Synb0_LOCAL
 
 # Set paths for local tools (FreeSurfer, FSL, ANTs, c3d, PyTorch, NumPy, SciPy, and NiBabel)
-if [ -f $Synb0_SRC/local_paths.sh ]; then
-    source $Synb0_SRC/local_paths.sh
+if [ -f $Synb0_LOCAL/local_paths.sh ]; then
+    source $Synb0_LOCAL/local_paths.sh
 else
     echo "local_paths.sh not found. Please check local_paths_example.sh."
     exit 1
 fi
 
+#-------------------------------------------------#
 ## Arguments
 # Set default values
 TOPUP=1
@@ -72,19 +70,6 @@ while getopts ":t:b:a:o:is" opt; do
   esac
 done
 
-## Parse arguments -i -s
-# for arg in "$@"
-# do
-#     case $arg in
-#         -i|--notopup)
-#             TOPUP=0
-# 	        ;;
-#     	-s|--stripped)
-# 	        MNI_T1_1_MM_FILE=$Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_mask.nii.gz
-#             ;;
-#     esac
-# done
-
 ## Checks
 # exit if variable is empty or files does not exist
 errorMsg=""
@@ -119,6 +104,7 @@ if [[ $OUTPUTDIR == */ ]]; then
     OUTPUTDIR=${OUTPUTDIR%/}
 fi
 
+
 #-------------------------------------------------#
 # Prepare input data
 prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE $Synb0_ATLAS/mni_icbm152_t1_tal_nlin_asym_09c_2_5.nii.gz $OUTPUTDIR
@@ -127,7 +113,7 @@ prepare_input_local.sh $b0 $T1 $MNI_T1_1_MM_FILE $Synb0_ATLAS/mni_icbm152_t1_tal
 NUM_FOLDS=5
 for i in $(seq 1 $NUM_FOLDS); do 
   echo -- Performing inference on FOLD: "$i" --
-  python3 $Synb0_SRC/inference_local.py $OUTPUTDIR/T1_norm_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_d_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz $Synb0_SRC/train_lin/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth 
+  python3 $Synb0_LOCAL/inference_local.py $OUTPUTDIR/T1_norm_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_d_lin_atlas_2_5.nii.gz $OUTPUTDIR/b0_u_lin_atlas_2_5_FOLD_"$i".nii.gz $Synb0_SRC/train_lin/num_fold_"$i"_total_folds_"$NUM_FOLDS"_seed_1_num_epochs_100_lr_0.0001_betas_\(0.9\,\ 0.999\)_weight_decay_1e-05_num_epoch_*.pth 
 done
 
 # Take mean
@@ -151,10 +137,10 @@ fslmerge -t $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_d_smooth.nii.gz $OUTPUTDIR/b0
 # Merge results and run through topup
 if [[ $TOPUP -eq 1 ]]; then
     # check dimensions of b0_all.nii.gz (topup requires even dimensions)
-    $Synb0_SRC/check_nii_dims.sh $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_all.nii.gz
+    $Synb0_LOCAL/check_nii_dims.sh $OUTPUTDIR/b0_all.nii.gz $OUTPUTDIR/b0_all.nii.gz
 
     echo Running topup
-    topup -v --imain=$OUTPUTDIR/b0_all.nii.gz --datain=acqparams.txt --config=$Synb0_SRC/synb0.cnf --iout=$OUTPUTDIR/b0_all_topup.nii.gz --out=$OUTPUTDIR/topup
+    topup -v --imain=$OUTPUTDIR/b0_all.nii.gz --datain=$ACQP --config=$Synb0_SRC/synb0.cnf --iout=$OUTPUTDIR/b0_all_topup.nii.gz --out=$OUTPUTDIR/topup
 fi
 
 # Done
